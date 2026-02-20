@@ -659,3 +659,10 @@ const navSections = document.querySelectorAll('section[id]');
 const navObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
+            document.querySelectorAll('.nav-links li a').forEach(a => a.classList.remove('active'));
+            const activeLink = document.querySelector(`.nav-links li a[href="#${entry.target.id}"]`);
+                             if (activeLink) activeLink.classList.add('active');
+        }
+    });
+}, { threshold: 0.2, rootMargin: '-80px 0px -50% 0px' });
+navSections.forEach(s => navObserver.observe(s));
