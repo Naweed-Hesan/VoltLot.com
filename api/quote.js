@@ -1,6 +1,44 @@
 // VoltLot — Quote Request API Handler
 // Vercel Serverless Function · Sends formatted HTML email via Resend
 
+// ── In-memory rate limiter (per function instance) ──
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const RATE_LIMIT_MAX = 5; // max requests per window per IP
+const rateLimitMap = new Map();
+
+function getRateLimitKey(req) {
+    return req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+           req.headers['x-real-ip'] ||
+           req.socket?.remoteAddress ||
+           'unknown';
+}
+
+function isRateLimited(key) {
+    const now = Date.now();
+    const entry = rateLimitMap.get(key);
+
+    if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
+        rateLimitMap.set(key, { windowStart: now, count: 1 });
+        return false;
+    }
+
+    entry.count++;
+    if (entry.count > RATE_LIMIT_MAX) {
+        return true;
+    }
+    return false;
+}
+
+// Periodic cleanup to prevent memory leaks
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of rateLimitMap) {
+        if (now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
+            rateLimitMap.delete(key);
+        }
+    }
+}, RATE_LIMIT_WINDOW_MS);
+
 export default async function handler(req, res) {
     // ── CORS headers ──
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -15,6 +53,12 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // ── Rate limiting ──
+    const clientIp = getRateLimitKey(req);
+    if (isRateLimited(clientIp)) {
+        return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+    }
+
     // ── Validate environment ──
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
     const RECIPIENT_EMAIL = process.env.QUOTE_RECIPIENT_EMAIL || 'info@edgewoodgt.com';
@@ -23,6 +67,13 @@ export default async function handler(req, res) {
     if (!RESEND_API_KEY) {
         console.error('Missing RESEND_API_KEY environment variable');
         return res.status(500).json({ error: 'Server configuration error' });
+    }
+
+    // ── Honeypot bot detection ──
+    const { website: honeypot } = req.body || {};
+    if (honeypot) {
+        // Bots fill hidden fields — silently reject but return 200 to avoid tipping them off
+        return res.status(200).json({ success: true, quoteId: 'VL-0000' });
     }
 
     // ── Parse & validate form data ──
