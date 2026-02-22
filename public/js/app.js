@@ -3,7 +3,7 @@ const carouselSlides = [
     {
         title: 'Premium iPhone Stock',
         subtitle: 'Latest models at wholesale prices',
-        description: 'Source iPhone 16, 15, and 14 series from verified B-Stock auctions. All grades available with full transparency.',
+        description: 'Source iPhone 16, 15, and 14 series from verified liquidation auctions. All grades available with full transparency.',
         image: '/images/iphones-banner.webp',
         bg: '#f0f4ff',
         category: 'iphone'
@@ -194,10 +194,10 @@ const gradingData = [
 
 const faqData = [
     { question: 'How does the wholesale purchasing process work?', answer: 'Simply browse our inventory, select the products and quantities you need, and submit a quote request. We\'ll provide a detailed quote within 24 hours including product costs, shipping, and our commission. Once approved, you pay upfront and we handle everything from bidding to international delivery.' },
-    { question: 'What is your pricing model?', answer: 'We operate on a zero capital risk commission model. You pay the full amount upfront (stock cost + our commission + shipping). We source the products from verified B-Stock auctions and handle all logistics. There are no hidden fees or minimum order requirements.' },
+    { question: 'What is your pricing model?', answer: 'We operate on a zero capital risk commission model. You pay the full amount upfront (stock cost + our commission + shipping). We source the products from verified liquidation auctions and handle all logistics. There are no hidden fees or minimum order requirements.' },
     { question: 'Which countries do you ship to?', answer: 'We primarily serve the UAE and Asian markets including Singapore, Hong Kong, Malaysia, Thailand, and more. We handle all international shipping logistics and documentation. Contact us for specific country availability.' },
     { question: 'What grades of products do you offer?', answer: 'We offer all grades from AA+ (Like New) to C/RR (For Parts). Each grade is clearly defined with specific cosmetic and functional criteria. Higher grades command premium resale value, while lower grades offer deeper discounts for repair shops or parts dealers.' },
-    { question: 'Do you offer warranties or returns?', answer: 'AA+ grade items come with a 14-day buyer protection. All other grades are sold as-is with detailed manifests provided. We ensure complete transparency about the condition of every unit before purchase.' },
+    { question: 'Do you offer warranties or returns?', answer: 'We do not offer returns. All items are sold as-is with detailed manifests provided. We ensure complete transparency about the condition of every unit before purchase.' },
     { question: 'How quickly can you fulfill orders?', answer: 'Typical turnaround from order confirmation to delivery is 2-4 weeks, depending on auction availability and destination. We provide tracking and regular updates throughout the process.' },
     { question: 'Can I order mixed lots with different models?', answer: 'Yes! We specialize in both specific model orders and mixed lots. Our wholesale bundles often provide the best value for resellers looking for variety. Check our iPhone Mixed Lot and Android Wholesale Bundle categories.' },
     { question: 'How do I contact you for urgent inquiries?', answer: 'For immediate assistance, use our WhatsApp button available on every page. You can also email us at info@voltlot.com or submit a quote request form. We respond to all inquiries within 24 hours.' }
