@@ -280,7 +280,7 @@ function initCarousel() {
                     <h1>${slide.title}</h1>
                     <p class="description">${slide.description}</p>
                     <div class="slide-actions">
-                        <a href="https://wa.me/TODO_WHATSAPP_NUMBER" class="btn btn-whatsapp" target="_blank" rel="noopener noreferrer">
+                        <a href="https://wa.me/12537501234" class="btn btn-whatsapp" target="_blank" rel="noopener noreferrer">
                             <span class="material-symbols-rounded">chat</span> WhatsApp Now
                         </a>
                         <a href="#quote" class="btn btn-primary">
