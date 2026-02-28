@@ -1,10 +1,31 @@
 // VoltLot — Quote Request API Handler
 // Vercel Serverless Function · Sends formatted HTML email via Resend
 
-// ── In-memory rate limiter (per function instance) ──
-const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-const RATE_LIMIT_MAX = 5; // max requests per window per IP
+import { Redis } from '@upstash/redis';
+
+// ── Rate limit config ──
+const RATE_LIMIT_WINDOW_SEC = 15 * 60; // 15 minutes
+const RATE_LIMIT_MAX = 5;
+
+// ── Upstash Redis client (only created if env vars are present) ──
+let redis = null;
+if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    redis = new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+}
+
+// ── In-memory fallback rate limiter ──
 const rateLimitMap = new Map();
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of rateLimitMap) {
+        if (now - entry.windowStart > RATE_LIMIT_WINDOW_SEC * 1000) {
+            rateLimitMap.delete(key);
+        }
+    }
+}, RATE_LIMIT_WINDOW_SEC * 1000);
 
 function getRateLimitKey(req) {
     return req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
@@ -13,31 +34,47 @@ function getRateLimitKey(req) {
            'unknown';
 }
 
-function isRateLimited(key) {
-    const now = Date.now();
-    const entry = rateLimitMap.get(key);
-
-    if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
-        rateLimitMap.set(key, { windowStart: now, count: 1 });
-        return false;
-    }
-
-    entry.count++;
-    if (entry.count > RATE_LIMIT_MAX) {
-        return true;
-    }
-    return false;
-}
-
-// Periodic cleanup to prevent memory leaks
-setInterval(() => {
-    const now = Date.now();
-    for (const [key, entry] of rateLimitMap) {
-        if (now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
-            rateLimitMap.delete(key);
+async function isRateLimited(ip) {
+    if (redis) {
+        try {
+            const key = `rl:${ip}`;
+            const count = await redis.incr(key);
+            if (count === 1) {
+                await redis.expire(key, RATE_LIMIT_WINDOW_SEC);
+            }
+            return count > RATE_LIMIT_MAX;
+        } catch (err) {
+            console.error('Redis rate limit error, falling back to in-memory:', err);
         }
     }
-}, RATE_LIMIT_WINDOW_MS);
+    // In-memory fallback (per-instance, used when Redis is not configured)
+    const now = Date.now();
+    const entry = rateLimitMap.get(ip);
+    if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW_SEC * 1000) {
+        rateLimitMap.set(ip, { windowStart: now, count: 1 });
+        return false;
+    }
+    entry.count++;
+    return entry.count > RATE_LIMIT_MAX;
+}
+
+// ── Field length limits ──
+const FIELD_LIMITS = {
+    fullName:     100,
+    email:        254,
+    company:      200,
+    phone:         30,
+    category:      50,
+    model:        200,
+    quantity:      10,
+    grade:         10,
+    destination:  100,
+    requirements: 2000,
+};
+
+// ── Format validators ──
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const PHONE_RE = /^\+?[\d\s\-().]{7,30}$/;
 
 export default async function handler(req, res) {
     // ── CORS headers ──
@@ -55,7 +92,7 @@ export default async function handler(req, res) {
 
     // ── Rate limiting ──
     const clientIp = getRateLimitKey(req);
-    if (isRateLimited(clientIp)) {
+    if (await isRateLimited(clientIp)) {
         return res.status(429).json({ error: 'Too many requests. Please try again later.' });
     }
 
@@ -76,7 +113,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, quoteId: 'VL-0000' });
     }
 
-    // ── Parse & validate form data ──
+    // ── Parse form data ──
     const {
         fullName,
         email,
@@ -90,8 +127,25 @@ export default async function handler(req, res) {
         requirements
     } = req.body || {};
 
+    // ── Required field presence ──
     if (!fullName || !email || !phone || !category || !destination) {
         return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // ── Length limits ──
+    const fields = { fullName, email, company, phone, category, model, quantity, grade, destination, requirements };
+    for (const [field, value] of Object.entries(fields)) {
+        if (value && String(value).length > FIELD_LIMITS[field]) {
+            return res.status(400).json({ error: `Field '${field}' exceeds maximum length` });
+        }
+    }
+
+    // ── Format validation ──
+    if (!EMAIL_RE.test(email)) {
+        return res.status(400).json({ error: 'Invalid email address' });
+    }
+    if (!PHONE_RE.test(phone)) {
+        return res.status(400).json({ error: 'Invalid phone number' });
     }
 
     // ── Grade display mapping ──
@@ -294,7 +348,7 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: true, quoteId });
         } else {
             console.error('Resend API error:', result);
-            return res.status(500).json({ error: 'Failed to send email', details: result.message });
+            return res.status(500).json({ error: 'Failed to send email' });
         }
     } catch (err) {
         console.error('Email send error:', err);
