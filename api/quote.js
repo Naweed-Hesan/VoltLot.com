@@ -221,7 +221,7 @@ export default async function handler(req, res) {
                                 </tr>
                                 <tr>
                                     <td style="padding:12px 16px;font-size:13px;color:#6b7280;font-weight:600;border-bottom:1px solid #e5e7eb;">Preferred Grade</td>
-                                    <td style="padding:12px 16px;font-size:14px;color:#111827;border-bottom:1px solid #e5e7eb;">${gradeLabels[grade] || grade || 'Any Grade'}</td>
+                                    <td style="padding:12px 16px;font-size:14px;color:#111827;border-bottom:1px solid #e5e7eb;">${gradeLabels[grade] || escapeHtml(grade) || 'Any Grade'}</td>
                                 </tr>
                                 <tr style="background:#f9fafb;">
                                     <td style="padding:12px 16px;font-size:13px;color:#6b7280;font-weight:600;">Destination</td>
