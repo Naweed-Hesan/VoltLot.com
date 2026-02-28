@@ -170,6 +170,19 @@ export default async function handler(req, res) {
         'android-lot': 'Android Wholesale Bundle'
     };
 
+    // ── Allowlist validation ──
+    if (!Object.prototype.hasOwnProperty.call(categoryLabels, category)) {
+        return res.status(400).json({ error: 'Invalid category' });
+    }
+    if (grade && !Object.prototype.hasOwnProperty.call(gradeLabels, grade)) {
+        return res.status(400).json({ error: 'Invalid grade' });
+    }
+
+    // ── Quantity numeric validation ──
+    if (quantity && (!/^\d+$/.test(quantity) || parseInt(quantity, 10) < 1)) {
+        return res.status(400).json({ error: 'Quantity must be a positive integer' });
+    }
+
     // ── Build HTML email ──
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-US', {
@@ -182,7 +195,7 @@ export default async function handler(req, res) {
         timeZoneName: 'short'
     });
 
-    const quoteId = `VL-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+    const quoteId = `VL-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
     const htmlEmail = `
 <!DOCTYPE html>

@@ -414,9 +414,9 @@ function generateProducts() {
                 <img src="${p.image}" alt="${p.name}" loading="lazy">
             </div>
             <div class="product-info">
-                <h3>${p.name}</h3>
+                <h3>${escapeAttr(p.name)}</h3>
                 <ul class="product-specs">
-                    ${p.specs.map(s => `<li>${s}</li>`).join('')}
+                    ${p.specs.map(s => `<li>${escapeAttr(s)}</li>`).join('')}
                 </ul>
                 <div class="product-actions">
                     <button class="btn-details" onclick="showProductDetails(${p.originalIndex})">
